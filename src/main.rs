@@ -4,6 +4,9 @@ use std::fs;
 mod tispc_lexer;
 use tispc_lexer::get_token_stream;
 
+mod tispc_parser;
+use tispc_parser::parse_token_stream;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
@@ -14,5 +17,7 @@ fn main() {
         .expect("Something went wrong reading the file");
 
     let token_stream = get_token_stream(&raw_code);
-    println!("{:?}", token_stream);
+    println!("Token stream: \n{:?}", token_stream);
+
+    parse_token_stream(token_stream);
 }
