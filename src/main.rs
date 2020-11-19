@@ -13,11 +13,11 @@ fn main() {
         panic!("No file provided");
     }
     let filename = &args[1];
-    let raw_code = fs::read_to_string(filename)
-        .expect("Something went wrong reading the file");
+    let raw_code = fs::read_to_string(filename).expect("Something went wrong reading the file");
 
     let token_stream = get_token_stream(&raw_code);
-    println!("Token stream: \n{:?}", token_stream);
 
+    println!("Raw code:\n {}", raw_code);
+    println!("Token stream: \n{:?}", token_stream);
     parse_token_stream(token_stream);
 }
