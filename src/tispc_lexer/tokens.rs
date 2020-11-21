@@ -21,8 +21,13 @@ pub enum LexToken<'a> {
     #[token("/")]
     Divide,
 
+    // Match string literals and then strip the " at start and end
+    #[regex("\"([^\"\\\\]|\\\\.)*\"")]
+    String(&'a str),
+
+    // Non-literal strings and keywords
     #[regex("[a-zA-Z]+")]
-    Text(&'a str),
+    Ident(&'a str),
 
     #[regex("(-)*([0-9])+", |lex| lex.slice().parse())]
     Number(f64),
@@ -44,6 +49,8 @@ pub enum TokenKind {
 
     CloseParen,
 
+    Comment,
+    
     Plus,
 
     Minus,
@@ -52,19 +59,24 @@ pub enum TokenKind {
 
     Divide,
 
-    Text,
+    Literal(LiteralKind),
 
-    Number,
-
-    Boolean,
+    Ident,
 
     Whitespace,
 
     Error
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum LiteralKind {
+    Number,
+    String,
+    Boolean
+}
+
 #[derive(Debug, Clone, PartialEq)]
-pub enum Literal<'a> {
+pub enum Value<'a> {
     Number(f64),
     String(&'a str),
     Boolean(bool)
@@ -83,5 +95,5 @@ pub enum Ident<'a> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token<'a> {
     pub kind: TokenKind,
-    pub value: Option<Literal<'a>>
+    pub value: Option<Value<'a>>
 }

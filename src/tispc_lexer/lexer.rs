@@ -1,5 +1,5 @@
 use logos::Logos;
-use super::tokens::{ LexToken, TokenKind, Token, Literal };
+use super::tokens::{ LexToken, TokenKind, Token, Value, LiteralKind };
 
 pub fn get_token_stream(raw_code: &String) -> Vec<Token> {
     let mut token_stream: Vec<Token> = Vec::new();
@@ -8,10 +8,16 @@ pub fn get_token_stream(raw_code: &String) -> Vec<Token> {
     loop {
         let lex_token = lex.next();
         let (kind, value) = match lex_token {
-            // Some(LexToken::Error) => panic!("There was an error reading the code"),
-            Some(LexToken::Number(val)) => (TokenKind::Number, Some(Literal::Number(val))),
-            Some(LexToken::Boolean(val)) => (TokenKind::Boolean, Some(Literal::Boolean(val))),
-            Some(LexToken::Text(val)) => (TokenKind::Text, Some(Literal::String(val))),
+            Some(LexToken::Number(val)) => {
+                (TokenKind::Literal(LiteralKind::Number), Some(Value::Number(val)))
+            },
+            Some(LexToken::Boolean(val)) => {
+                (TokenKind::Literal(LiteralKind::Boolean), Some(Value::Boolean(val)))
+            },
+            Some(LexToken::String(val)) => {
+                (TokenKind::Literal(LiteralKind::String), Some(Value::String(val)))
+            },
+            Some(LexToken::Ident(val)) => (TokenKind::Ident, Some(Value::String(val))),
             Some(LexToken::OpenParen) => (TokenKind::OpenParen, None),
             Some(LexToken::CloseParen) => (TokenKind::CloseParen, None),
             Some(LexToken::Minus) => (TokenKind::Minus, None),
