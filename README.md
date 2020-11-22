@@ -1,4 +1,17 @@
-# Tisp (**T**yped **Lisp**)
+# Tisp (**T**yped **L**isp)
+
+A Lisp-like programming language that is typed and compiled. It aims to 
+support multiple processor architectures by being built upon LLVM. It takes
+inspiration from programming languages like Rust, Lisp and Elixir.
+
+Here's an example function declaration in Tisp:
+```
+(def (add_one_and_double num:i32):i32
+    (num)
+    (|> (+ 1))
+    (|> (* 2))
+)
+```
 
 ## Features to build
 
@@ -6,6 +19,7 @@
 - [x] Convert token stream into Expression tree
 - [x] Handle multiple levels of nested expressions
 - [x] Have multiple (independent) expressions per file
+- [ ] Add types for function and variable declaration
 - [ ] Define functions
 - [ ] Support types in code
 - [ ] Declare variables

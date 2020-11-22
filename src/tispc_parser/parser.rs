@@ -43,6 +43,7 @@ pub fn parse_token_stream(token_stream: Vec<Token>) {
 
             TokenKind::CloseParen => {
                 let mut params: Vec<Expr> = Vec::new();
+                // pop elements from stack until a Builtin is found
                 loop {
                     let expr = stack.pop();
                     match expr {
