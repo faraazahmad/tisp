@@ -5,11 +5,11 @@ support multiple processor architectures by being built upon LLVM. It takes
 inspiration from programming languages like Rust, Lisp and Elixir.
 
 Here's an example function declaration in Tisp:
-```
+```lisp
 (def (add_one_and_double num:i32):i32
     (num)
-    (|> (+ 1))
-    (|> (* 2))
+    (then (+ 1))
+    (then (* 2))
 )
 ```
 
