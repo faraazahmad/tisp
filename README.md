@@ -19,6 +19,7 @@ Here's an example function declaration in Tisp:
 - [x] Convert token stream into Expression tree
 - [x] Handle multiple levels of nested expressions
 - [x] Have multiple (independent) expressions per file
+- [x] Generate LLVM IR for the currently supported features
 - [ ] Add types for function and variable declaration
 - [ ] Define functions
 - [ ] Support types in code

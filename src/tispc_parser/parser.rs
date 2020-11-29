@@ -1,13 +1,18 @@
-use crate::tispc_lexer::{ Value, Token, TokenKind, Ident, LiteralKind };
+use crate::tispc_lexer::{Ident, LiteralKind, Token, TokenKind, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr<'a> {
     Constant(Value<'a>),
     Builtin(Ident<'a>),
-    Call(Box<Expr<'a>>, Vec<Expr<'a>>)
+    Call(Box<Expr<'a>>, Vec<Expr<'a>>),
 }
 
-pub fn parse_token_stream(token_stream: Vec<Token>) {
+/// generate_expression_tree
+///
+/// Takes in a stream of `Token`s and generates an Expression
+/// tree of type Vec<Expr>
+
+pub fn generate_expression_tree(token_stream: Vec<Token>) -> Vec<Expr> {
     let mut stack: Vec<Expr> = Vec::new();
     for token in token_stream {
         let expr = match token.kind {
@@ -20,25 +25,15 @@ pub fn parse_token_stream(token_stream: Vec<Token>) {
             TokenKind::Ident => {
                 // TODO: Add logic to further divide Ident into categories (later)
                 match token.value {
-                    Some(Value::String(val)) => {
-                        Some(Expr::Builtin(Ident::FuncName(val)))
-                    },
+                    Some(Value::String(val)) => Some(Expr::Builtin(Ident::FuncName(val))),
                     _ => panic!("Invalid value for Identifier"),
                 }
-            },
-            TokenKind::Literal(LiteralKind::Boolean) => {
-                Some(Expr::Constant(token.value.unwrap()))
-            },
-            TokenKind::Literal(LiteralKind::Number) => {
-                Some(Expr::Constant(token.value.unwrap()))
-            },
-            TokenKind::Literal(LiteralKind::String) => {
-                match token.value {
-                    Some(Value::String(str)) => {
-                        Some(Expr::Constant(Value::String(str)))
-                    },
-                    _ => panic!("Invalid value for string literal"),
-                }
+            }
+            TokenKind::Literal(LiteralKind::Boolean) => Some(Expr::Constant(token.value.unwrap())),
+            TokenKind::Literal(LiteralKind::Number) => Some(Expr::Constant(token.value.unwrap())),
+            TokenKind::Literal(LiteralKind::String) => match token.value {
+                Some(Value::String(str)) => Some(Expr::Constant(Value::String(str))),
+                _ => panic!("Invalid value for string literal"),
             },
 
             TokenKind::CloseParen => {
@@ -50,21 +45,21 @@ pub fn parse_token_stream(token_stream: Vec<Token>) {
                         Some(Expr::Builtin(_)) => {
                             params.push(expr.unwrap());
                             break;
-                        },
+                        }
                         _ => params.push(expr.unwrap()),
                     }
                 }
                 let func_name = params.pop().unwrap();
-                
+
                 // create Expr from params and func name
                 Some(Expr::Call(Box::new(func_name), params))
-            },
+            }
 
-            _ => panic!("Invaid expression")
+            _ => panic!("Invaid expression"),
         };
 
         stack.push(expr.unwrap());
     }
 
-    println!("\nAST: \n{:?}", stack);
+    stack
 }
