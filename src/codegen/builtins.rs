@@ -1,5 +1,6 @@
 use inkwell::module::Linkage;
 use inkwell::types::BasicTypeEnum;
+use inkwell::values::BasicValueEnum;
 
 use crate::codegen::Codegen;
 
@@ -27,5 +28,28 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .add_function("printf", printf_type, Some(Linkage::External));
 
         self.builtins.push(printf_fn);
+    }
+
+    pub fn generate_printf_format_string(
+        &self,
+        compiled_args: Vec<BasicValueEnum<'ctx>>,
+    ) -> BasicValueEnum<'ctx> {
+        let mut format_string = String::from("");
+
+        for arg in compiled_args {
+            let format_arg = match arg {
+                BasicValueEnum::FloatValue(_) => "%f",
+                BasicValueEnum::PointerValue(_) => "%s",
+                _ => panic!("Invalid arg type for printf"),
+            };
+
+            format_string.push_str(format_arg);
+        }
+
+        BasicValueEnum::PointerValue(
+            self.builder
+                .build_global_string_ptr(format_string.as_str(), "format_string")
+                .as_pointer_value(),
+        )
     }
 }

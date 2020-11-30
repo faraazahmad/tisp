@@ -1,6 +1,5 @@
-use inkwell::types::BasicTypeEnum;
+use inkwell::context::Context;
 use inkwell::{builder::Builder, values::BasicValueEnum};
-use inkwell::{context::Context, module::Linkage};
 use inkwell::{module::Module, values::FunctionValue};
 
 use crate::tispc_lexer::Value;
@@ -45,7 +44,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         match func_name {
             "print" => {
                 let printf = self.builtins[0].clone();
-                let compiled_args = self.generate_args(args);
+                let mut compiled_args = self.generate_args(args);
+                let format_string = self.generate_printf_format_string(compiled_args.clone());
+                compiled_args.insert(0, format_string);
                 self.builder
                     .build_call(printf, compiled_args.as_slice(), "printf");
             }
