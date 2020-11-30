@@ -7,10 +7,10 @@ mod codegen;
 use codegen::Codegen;
 
 mod tispc_lexer;
-use tispc_lexer::{get_token_stream, Ident};
+use tispc_lexer::get_token_stream;
 
 mod tispc_parser;
-use tispc_parser::{generate_expression_tree, Expr};
+use tispc_parser::generate_expression_tree;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -37,20 +37,8 @@ fn main() {
         builtins: &mut Vec::new(),
     };
 
-    codegen.module.set_source_file_name(filename);
-    codegen.init();
-    for expression in expression_tree {
-        match expression {
-            Expr::Call(func_name_box, args) => match *func_name_box {
-                Expr::Builtin(Ident::FuncName(func_name)) => codegen.generate_call(func_name, args),
-                _ => (),
-            },
-            _ => (),
-        }
-    }
-    codegen
-        .builder
-        .build_return(Some(&codegen.context.i32_type().const_int(0, false)));
+    codegen.init(filename);
+    codegen.generate_llvm_ir(expression_tree);
 
     println!("{}", codegen.module.print_to_string().to_str().unwrap());
 

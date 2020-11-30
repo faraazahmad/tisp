@@ -39,7 +39,7 @@ pub enum LexToken<'a> {
     Whitespace,
 
     #[error]
-    Error
+    Error,
 }
 
 // Final representation of the kind of token
@@ -49,8 +49,6 @@ pub enum TokenKind {
 
     CloseParen,
 
-    Comment,
-    
     Plus,
 
     Minus,
@@ -63,23 +61,21 @@ pub enum TokenKind {
 
     Ident,
 
-    Whitespace,
-
-    Error
+    Error,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum LiteralKind {
     Number,
     String,
-    Boolean
+    Boolean,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value<'a> {
     Number(f64),
     String(&'a str),
-    Boolean(bool)
+    Boolean(bool),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -89,11 +85,11 @@ pub enum Ident<'a> {
     Plus,
     Minus,
     Mult,
-    Div
+    Div,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token<'a> {
     pub kind: TokenKind,
-    pub value: Option<Value<'a>>
+    pub value: Option<Value<'a>>,
 }

@@ -2,7 +2,7 @@ use inkwell::context::Context;
 use inkwell::{builder::Builder, values::BasicValueEnum};
 use inkwell::{module::Module, values::FunctionValue};
 
-use crate::tispc_lexer::Value;
+use crate::tispc_lexer::{Ident, Value};
 use crate::tispc_parser::Expr;
 
 pub struct Codegen<'a, 'ctx> {
@@ -13,7 +13,23 @@ pub struct Codegen<'a, 'ctx> {
 }
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
-    // pub fn generate_llvm_ir(&self) {}
+    pub fn generate_llvm_ir(&self, expression_tree: Vec<Expr>) {
+        for expression in expression_tree {
+            match expression {
+                Expr::Call(func_name_box, args) => match *func_name_box {
+                    Expr::Builtin(Ident::FuncName(func_name)) => {
+                        self.generate_call(func_name, args)
+                    }
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+
+        // add return 0 at the end
+        self.builder
+            .build_return(Some(&self.context.i32_type().const_int(0, false)));
+    }
 
     fn generate_args(&self, func_name: &str, args: Vec<Expr>) -> Vec<BasicValueEnum<'ctx>> {
         let mut compiled_args: Vec<BasicValueEnum> = Vec::new();
@@ -54,7 +70,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         }
     }
 
-    pub fn init(&mut self) {
+    pub fn init(&mut self, source_filename: &str) {
+        self.module.set_source_file_name(source_filename);
         self.generate_main_fn();
         self.add_printf();
     }
