@@ -38,8 +38,8 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
         for arg in compiled_args {
             let format_arg = match arg {
-                BasicValueEnum::FloatValue(_) => "%f",
-                BasicValueEnum::PointerValue(_) => "%s",
+                BasicValueEnum::FloatValue(_) => "%f ",
+                BasicValueEnum::PointerValue(_) => "%s ",
                 _ => panic!("Invalid arg type for printf"),
             };
 

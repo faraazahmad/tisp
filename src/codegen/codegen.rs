@@ -15,21 +15,21 @@ pub struct Codegen<'a, 'ctx> {
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     // pub fn generate_llvm_ir(&self) {}
 
-    fn generate_args(&self, args: Vec<Expr>) -> Vec<BasicValueEnum<'ctx>> {
+    fn generate_args(&self, func_name: &str, args: Vec<Expr>) -> Vec<BasicValueEnum<'ctx>> {
         let mut compiled_args: Vec<BasicValueEnum> = Vec::new();
 
-        for arg in args {
+        for (index, arg) in args.iter().enumerate() {
             let compiled_arg = match arg {
                 Expr::Constant(Value::Number(val)) => {
-                    BasicValueEnum::FloatValue(self.context.f64_type().const_float(val))
+                    BasicValueEnum::FloatValue(self.context.f64_type().const_float(*val))
                 }
                 Expr::Constant(Value::String(val)) => {
+                    let str_name = format!("{}_arg_{}", func_name, index);
                     BasicValueEnum::PointerValue(
                         self.builder
-                            .build_global_string_ptr(val, "nothing")
+                            .build_global_string_ptr(val, str_name.as_str())
                             .as_pointer_value(),
                     )
-                    // BasicValueEnum::VectorValue(self.context.const_string(val.as_bytes(), true))
                 }
                 _ => panic!("Invalid arg type for function"),
             };
@@ -44,7 +44,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         match func_name {
             "print" => {
                 let printf = self.builtins[0].clone();
-                let mut compiled_args = self.generate_args(args);
+                let mut compiled_args = self.generate_args(func_name, args.clone());
                 let format_string = self.generate_printf_format_string(compiled_args.clone());
                 compiled_args.insert(0, format_string);
                 self.builder
