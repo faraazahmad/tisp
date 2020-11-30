@@ -25,19 +25,20 @@ fn main() {
     // println!("Raw code:\n {}", raw_code);
     // println!("Token stream: \n{:?}", token_stream);
     let expression_tree = generate_expression_tree(token_stream);
-    // println!("\n{:?}", expression_tree);
+    println!("\n{:?}", expression_tree);
 
     let context = Context::create();
     let module = context.create_module("example");
     let builder = context.create_builder();
-    let codegen = Codegen {
+    let mut codegen = Codegen {
         context: &context,
         module: &module,
         builder: &builder,
+        builtins: &mut Vec::new(),
     };
 
     codegen.module.set_source_file_name(filename);
-    codegen.generate_main_fn();
+    codegen.init();
     for expression in expression_tree {
         match expression {
             Expr::Call(func_name_box, args) => match *func_name_box {
@@ -47,10 +48,14 @@ fn main() {
             _ => (),
         }
     }
+    codegen
+        .builder
+        .build_return(Some(&codegen.context.i32_type().const_int(0, false)));
+
+    println!("{}", codegen.module.print_to_string().to_str().unwrap());
 
     codegen.module.verify().expect("Invalid moduleses");
 
-    println!("{}", codegen.module.print_to_string().to_str().unwrap());
     codegen
         .module
         .print_to_file("/home/faraaz/output.ll")
