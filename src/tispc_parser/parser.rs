@@ -1,4 +1,4 @@
-use crate::tispc_lexer::{Ident, LiteralKind, Token, TokenKind, Value};
+use crate::tispc_lexer::{Ident, IdentKind, LiteralKind, Token, TokenKind, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr<'a> {
@@ -17,18 +17,37 @@ pub fn generate_expression_tree(token_stream: Vec<Token>) -> Vec<Expr> {
     for token in token_stream {
         let expr = match token.kind {
             TokenKind::OpenParen => continue,
-            // TODO: Create a Operator TokenKind for the following group
-            TokenKind::Plus => Some(Expr::Builtin(Ident::Plus)),
-            TokenKind::Minus => Some(Expr::Builtin(Ident::Minus)),
-            TokenKind::Mult => Some(Expr::Builtin(Ident::Mult)),
-            TokenKind::Divide => Some(Expr::Builtin(Ident::Div)),
-            TokenKind::Ident => {
-                // TODO: Add logic to further divide Ident into categories (later)
-                match token.value {
-                    Some(Value::String(val)) => Some(Expr::Builtin(Ident::FuncName(val))),
-                    _ => panic!("Invalid value for Identifier"),
-                }
-            }
+            TokenKind::Plus => Some(Expr::Builtin(Ident {
+                kind: IdentKind::Plus,
+                value: None,
+            })),
+            TokenKind::Minus => Some(Expr::Builtin(Ident {
+                kind: IdentKind::Minus,
+                value: None,
+            })),
+            TokenKind::Mult => Some(Expr::Builtin(Ident {
+                kind: IdentKind::Mult,
+                value: None,
+            })),
+            TokenKind::Divide => Some(Expr::Builtin(Ident {
+                kind: IdentKind::Div,
+                value: None,
+            })),
+            TokenKind::Ident(ident_kind) => match ident_kind {
+                IdentKind::Let => Some(Expr::Builtin(Ident {
+                    kind: IdentKind::FuncName,
+                    value: Some(Value::String("let")),
+                })),
+                IdentKind::Print => Some(Expr::Builtin(Ident {
+                    kind: IdentKind::FuncName,
+                    value: Some(Value::String("print")),
+                })),
+                IdentKind::Variable => Some(Expr::Builtin(Ident {
+                    kind: IdentKind::Variable,
+                    value: token.value,
+                })),
+                _ => panic!("Invalid identifier kind"),
+            },
             TokenKind::Literal(LiteralKind::Boolean) => Some(Expr::Constant(token.value.unwrap())),
             TokenKind::Literal(LiteralKind::Number) => Some(Expr::Constant(token.value.unwrap())),
             TokenKind::Literal(LiteralKind::String) => match token.value {
@@ -38,15 +57,18 @@ pub fn generate_expression_tree(token_stream: Vec<Token>) -> Vec<Expr> {
 
             TokenKind::CloseParen => {
                 let mut params: Vec<Expr> = Vec::new();
-                // pop elements from stack until a Builtin is found
+                // pop elements from stack until a FuncName is found
                 loop {
                     let expr = stack.pop();
+                    params.push(expr.clone().unwrap());
                     match expr {
-                        Some(Expr::Builtin(_)) => {
-                            params.push(expr.unwrap());
+                        Some(Expr::Builtin(Ident {
+                            kind: IdentKind::FuncName,
+                            value,
+                        })) => {
                             break;
                         }
-                        _ => params.push(expr.unwrap()),
+                        _ => continue,
                     }
                 }
                 let func_name = params.pop().unwrap();

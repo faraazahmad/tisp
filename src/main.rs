@@ -3,8 +3,8 @@ use std::fs;
 
 use inkwell::context::Context;
 
-mod codegen;
-use codegen::Codegen;
+// mod codegen;
+// use codegen::Codegen;
 
 mod tispc_lexer;
 use tispc_lexer::get_token_stream;
@@ -22,30 +22,32 @@ fn main() {
 
     let token_stream = get_token_stream(&raw_code);
 
-    // println!("Raw code:\n {}", raw_code);
-    // println!("Token stream: \n{:?}", token_stream);
+    println!("{}", raw_code);
+    println!("Token stream: \n{:?}", token_stream);
     let expression_tree = generate_expression_tree(token_stream);
     println!("\n{:?}", expression_tree);
 
-    let context = Context::create();
-    let module = context.create_module("example");
-    let builder = context.create_builder();
-    let mut codegen = Codegen {
-        context: &context,
-        module: &module,
-        builder: &builder,
-        builtins: &mut Vec::new(),
-    };
+    /* let context = Context::create();
+        let module = context.create_module("example");
+        let builder = context.create_builder();
+        let mut codegen = Codegen {
+            context: &context,
+            module: &module,
+            builder: &builder,
+            builtins: &mut Vec::new(),
+        };
 
-    codegen.init(filename);
-    codegen.generate_llvm_ir(expression_tree);
+        codegen.init(filename);
+        codegen.generate_llvm_ir(expression_tree);
 
-    println!("{}", codegen.module.print_to_string().to_str().unwrap());
+        // println!("{}", codegen.module.print_to_string().to_str().unwrap());
 
-    codegen.module.verify().expect("Invalid moduleses");
+        codegen.module.verify().expect("Invalid moduleses");
 
-    codegen
-        .module
-        .print_to_file("/home/faraaz/output.ll")
-        .expect("Error printing to file");
+        codegen
+            .module
+            .print_to_file("/home/faraaz/output.ll")
+            .expect("Error printing to file");
+
+    */
 }

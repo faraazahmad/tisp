@@ -21,11 +21,17 @@ pub enum LexToken<'a> {
     #[token("/")]
     Divide,
 
+    #[token("let")]
+    Let,
+
+    #[token("print")]
+    Print,
+
     // Match string literals and then strip the " at start and end
     #[regex("\"([^\"\\\\]|\\\\.)*\"")]
     String(&'a str),
 
-    // Non-literal strings and keywords
+    // Non-literal strings (currently variable names)
     #[regex("[a-zA-Z]+")]
     Ident(&'a str),
 
@@ -59,7 +65,7 @@ pub enum TokenKind {
 
     Literal(LiteralKind),
 
-    Ident,
+    Ident(IdentKind),
 
     Error,
 }
@@ -71,7 +77,7 @@ pub enum LiteralKind {
     Boolean,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value<'a> {
     Number(f64),
     String(&'a str),
@@ -79,13 +85,21 @@ pub enum Value<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Ident<'a> {
-    Variable(&'a str),
-    FuncName(&'a str),
+pub enum IdentKind {
+    Variable,
+    Let,
+    Print,
+    FuncName,
     Plus,
     Minus,
     Mult,
     Div,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Ident<'a> {
+    pub kind: IdentKind,
+    pub value: Option<Value<'a>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
