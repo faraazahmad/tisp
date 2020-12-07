@@ -64,7 +64,7 @@ pub fn generate_expression_tree(token_stream: Vec<Token>) -> Vec<Expr> {
                     match expr {
                         Some(Expr::Builtin(Ident {
                             kind: IdentKind::FuncName,
-                            value,
+                            value: _,
                         })) => {
                             break;
                         }
@@ -72,6 +72,9 @@ pub fn generate_expression_tree(token_stream: Vec<Token>) -> Vec<Expr> {
                     }
                 }
                 let func_name = params.pop().unwrap();
+
+                // reverse params Vec to preserve calling order
+                params.reverse();
 
                 // create Expr from params and func name
                 Some(Expr::Call(Box::new(func_name), params))
