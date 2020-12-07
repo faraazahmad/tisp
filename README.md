@@ -23,4 +23,4 @@ Here's an example function declaration in Tisp:
 - [ ] Add types for function and variable declaration
 - [ ] Define functions
 - [ ] Support types in code
-- [ ] Declare variables
+- [x] Declare variables

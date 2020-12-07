@@ -66,8 +66,6 @@ pub enum TokenKind {
     Literal(LiteralKind),
 
     Ident(IdentKind),
-
-    Error,
 }
 
 #[derive(Clone, Debug, PartialEq)]

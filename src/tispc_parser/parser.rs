@@ -78,9 +78,7 @@ pub fn generate_expression_tree(token_stream: Vec<Token>) -> Vec<Expr> {
 
                 // create Expr from params and func name
                 Some(Expr::Call(Box::new(func_name), params))
-            }
-
-            _ => panic!("Invaid expression"),
+            } // _ => panic!("Invaid expression"),
         };
 
         stack.push(expr.unwrap());

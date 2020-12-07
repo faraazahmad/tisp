@@ -16,10 +16,18 @@ pub fn get_token_stream(raw_code: &String) -> Vec<Token> {
                 TokenKind::Literal(LiteralKind::Boolean),
                 Some(Value::Boolean(val)),
             ),
-            Some(LexToken::String(val)) => (
-                TokenKind::Literal(LiteralKind::String),
-                Some(Value::String(val)),
-            ),
+            Some(LexToken::String(val)) => {
+                // TODO: remove starting and ending \" from str
+                /*
+                 * let str_literal = String::from(val);
+                 * let len = str_literal.len() - 1;
+                 * let slice = str_literal[..len];
+                 */
+                (
+                    TokenKind::Literal(LiteralKind::String),
+                    Some(Value::String(val)),
+                )
+            }
             Some(LexToken::Ident(val)) => (
                 TokenKind::Ident(IdentKind::Variable),
                 Some(Value::String(val)),

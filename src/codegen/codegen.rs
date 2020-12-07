@@ -1,25 +1,28 @@
+use std::collections::HashMap;
+
+use crate::tispc_lexer::{Ident, IdentKind, Value};
+use crate::tispc_parser::Expr;
 use inkwell::context::Context;
 use inkwell::{builder::Builder, values::BasicValueEnum};
-use inkwell::{module::Module, values::FunctionValue};
-
-use crate::tispc_lexer::{Ident, Value};
-use crate::tispc_parser::Expr;
+use inkwell::{module::Module, values::FunctionValue, values::PointerValue};
 
 pub struct Codegen<'a, 'ctx> {
     pub context: &'ctx Context,
     pub module: &'a Module<'ctx>,
     pub builder: &'a Builder<'ctx>,
     pub builtins: &'a mut Vec<FunctionValue<'ctx>>,
+    pub variables: &'a mut HashMap<&'a str, PointerValue<'ctx>>,
 }
 
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
-    pub fn generate_llvm_ir(&self, expression_tree: Vec<Expr>) {
+    pub fn generate_llvm_ir(&mut self, expression_tree: Vec<Expr<'a>>) {
         for expression in expression_tree {
             match expression {
                 Expr::Call(func_name_box, args) => match *func_name_box {
-                    Expr::Builtin(Ident::FuncName(func_name)) => {
-                        self.generate_call(func_name, args)
-                    }
+                    Expr::Builtin(Ident {
+                        kind: IdentKind::FuncName,
+                        value: Some(Value::String(func_name)),
+                    }) => self.generate_call(func_name, args),
                     _ => (),
                 },
                 _ => (),
@@ -47,6 +50,18 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                             .as_pointer_value(),
                     )
                 }
+                Expr::Builtin(Ident {
+                    kind: IdentKind::Variable,
+                    value: Some(Value::String(var_name)),
+                }) => {
+                    // TODO: load and return its value
+                    let var_ptr = self.variables.get(var_name).unwrap();
+                    BasicValueEnum::FloatValue(
+                        self.builder
+                            .build_load(*var_ptr, var_name)
+                            .into_float_value(),
+                    )
+                }
                 _ => panic!("Invalid arg type for function"),
             };
 
@@ -56,7 +71,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
         compiled_args
     }
 
-    pub fn generate_call(&self, func_name: &str, args: Vec<Expr>) {
+    pub fn generate_call(&mut self, func_name: &str, args: Vec<Expr<'a>>) {
         match func_name {
             "print" => {
                 let printf = self.builtins[0].clone();
@@ -65,6 +80,29 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 compiled_args.insert(0, format_string);
                 self.builder
                     .build_call(printf, compiled_args.as_slice(), "printf");
+            }
+            "let" => {
+                // panic if let doesn't have exactly 2 params (name and value)
+                if args.len() != 2 {
+                    panic!("Invalid syntax for let")
+                }
+
+                // get name and value of variable
+                let name = match args[0].clone() {
+                    Expr::Builtin(Ident {
+                        kind: IdentKind::Variable,
+                        value: Some(Value::String(val)),
+                    }) => val,
+                    _ => panic!("Invalid variable name"),
+                };
+                let value = match args[1].clone() {
+                    Expr::Constant(Value::Number(val)) => self.context.f64_type().const_float(val),
+                    _ => panic!("Invalid type"),
+                };
+
+                let value_ptr = self.builder.build_alloca(self.context.f64_type(), name);
+                self.variables.insert(name, value_ptr);
+                self.builder.build_store(value_ptr, value);
             }
             _ => panic!("Invalid function: {}", func_name),
         }
