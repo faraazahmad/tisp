@@ -27,7 +27,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
             .module
             .add_function("printf", printf_type, Some(Linkage::External));
 
-        self.builtins.push(printf_fn);
+        self.builtins.insert("printf", printf_fn);
     }
 
     pub fn generate_printf_format_string(

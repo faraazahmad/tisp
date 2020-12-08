@@ -35,7 +35,7 @@ fn main() {
         context: &context,
         module: &module,
         builder: &builder,
-        builtins: &mut Vec::new(),
+        builtins: &mut HashMap::new(),
         variables: &mut HashMap::new(),
     };
 

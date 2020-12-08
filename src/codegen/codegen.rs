@@ -10,7 +10,7 @@ pub struct Codegen<'a, 'ctx> {
     pub context: &'ctx Context,
     pub module: &'a Module<'ctx>,
     pub builder: &'a Builder<'ctx>,
-    pub builtins: &'a mut Vec<FunctionValue<'ctx>>,
+    pub builtins: &'a mut HashMap<&'a str, FunctionValue<'ctx>>,
     pub variables: &'a mut HashMap<&'a str, PointerValue<'ctx>>,
 }
 
@@ -74,7 +74,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn generate_call(&mut self, func_name: &str, args: Vec<Expr<'a>>) {
         match func_name {
             "print" => {
-                let printf = self.builtins[0].clone();
+                let printf = self.builtins.get("printf").unwrap().clone();
                 let mut compiled_args = self.generate_args(func_name, args.clone());
                 let format_string = self.generate_printf_format_string(compiled_args.clone());
                 compiled_args.insert(0, format_string);
