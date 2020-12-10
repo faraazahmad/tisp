@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use std::env;
 use std::fs;
 
+use clap::{App, Arg};
 use inkwell::context::Context;
 
 mod codegen;
@@ -14,11 +14,29 @@ mod tispc_parser;
 use tispc_parser::generate_expression_tree;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        panic!("No file provided");
-    }
-    let filename = &args[1];
+    let matches = App::new("tispc")
+        .arg(
+            Arg::with_name("input")
+                .short("i")
+                .long("input")
+                .takes_value(true)
+                .help("Tisp file to compile"),
+        )
+        .arg(
+            Arg::with_name("emit-llvm")
+                .short("e")
+                .long("emit-llvm")
+                .takes_value(false)
+                .help("emits the llvm IR to console"),
+        )
+        .get_matches();
+
+    let filename = matches
+        .value_of("input")
+        .expect("Please enter the input file to compile");
+
+    let emit_llvm = matches.is_present("emit-llvm");
+
     let raw_code = fs::read_to_string(filename).expect("Something went wrong reading the file");
 
     let token_stream = get_token_stream(&raw_code);
@@ -42,9 +60,11 @@ fn main() {
     codegen.init(filename);
     codegen.generate_llvm_ir(expression_tree);
 
-    println!("{}", codegen.module.print_to_string().to_str().unwrap());
+    if emit_llvm {
+        println!("{}", codegen.module.print_to_string().to_str().unwrap());
+    }
 
-    codegen.module.verify().expect("Invalid moduleses");
+    codegen.module.verify().expect("Errors were encountered");
 
     codegen
         .module

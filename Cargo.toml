@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 logos = "0.11.4"
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm10-0"] }
+clap = "2.33.3"
