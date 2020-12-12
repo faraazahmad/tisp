@@ -21,6 +21,7 @@ Here's an example function declaration in Tisp:
 - [x] Have multiple (independent) expressions per file
 - [x] Generate LLVM IR for the currently supported features
 - [x] add CLI flag to emit llvm
+- [x] add loop
 - [ ] Add types for function and variable declaration
 - [ ] Define functions
 - [ ] Support types in code

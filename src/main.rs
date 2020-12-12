@@ -38,7 +38,6 @@ fn main() {
     let emit_llvm = matches.is_present("emit-llvm");
 
     let raw_code = fs::read_to_string(filename).expect("Something went wrong reading the file");
-
     let token_stream = get_token_stream(&raw_code);
 
     println!("{}", raw_code);

@@ -35,7 +35,7 @@ pub enum LexToken<'a> {
     #[regex("[a-zA-Z]+")]
     Ident(&'a str),
 
-    #[regex("(-)*([0-9])+", |lex| lex.slice().parse())]
+    #[regex("-?([0-9])+", |lex| lex.slice().parse())]
     Number(f64),
 
     #[regex("(true|false)", |lex| lex.slice().parse())]
