@@ -25,6 +25,13 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     }) => self.generate_call(func_name, args),
                     _ => (),
                 },
+                Expr::While { condition, body } => {
+                    // TODO: add basic block for loop
+                    // TODO: convert condition to llvm format
+                    // TODO: add body statements
+                    // TODO: add branch condition
+                    // TODO: add basic block for code after loop
+                }
                 _ => (),
             }
         }
@@ -54,7 +61,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     kind: IdentKind::Variable,
                     value: Some(Value::String(var_name)),
                 }) => {
-                    // TODO: load and return its value
                     let var_ptr = self.variables.get(var_name).unwrap();
                     BasicValueEnum::FloatValue(
                         self.builder
