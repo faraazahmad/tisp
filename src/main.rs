@@ -29,21 +29,26 @@ fn main() {
                 .takes_value(false)
                 .help("emits the llvm IR to console"),
         )
+        .arg(
+            Arg::with_name("debug")
+                .short("d")
+                .long("debug")
+                .takes_value(false)
+                .help("Print debug information (token stream and expression tree)"),
+        )
         .get_matches();
-    // TODO: add debug flag to print token_stream and expression tree
+
     let filename = matches
         .value_of("input")
         .expect("Please enter the input file to compile");
 
     let emit_llvm = matches.is_present("emit-llvm");
+    let debug_flag = matches.is_present("debug");
 
     let raw_code = fs::read_to_string(filename).expect("Something went wrong reading the file");
     let token_stream = get_token_stream(&raw_code);
 
-    println!("{}", raw_code);
-    println!("Token stream: \n{:?}", token_stream);
-    let expression_tree = generate_expression_tree(token_stream);
-    println!("\n\n Expression tree: \n{:?}", expression_tree);
+    let expression_tree = generate_expression_tree(token_stream.clone());
 
     let context = Context::create();
     let module = context.create_module("example");
@@ -57,7 +62,12 @@ fn main() {
     };
 
     codegen.init(filename);
-    codegen.generate_llvm_ir(expression_tree);
+    codegen.generate_llvm_ir(expression_tree.clone());
+
+    if debug_flag {
+        println!("Token stream: \n{:?}", token_stream);
+        println!("\n\n Expression tree: \n{:?}", expression_tree);
+    }
 
     if emit_llvm {
         println!("{}", codegen.module.print_to_string().to_str().unwrap());
