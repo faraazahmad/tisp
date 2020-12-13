@@ -43,7 +43,7 @@ fn main() {
     println!("{}", raw_code);
     println!("Token stream: \n{:?}", token_stream);
     let expression_tree = generate_expression_tree(token_stream);
-    println!("\n{:?}", expression_tree);
+    println!("\n\n Expression tree: \n{:?}", expression_tree);
 
     let context = Context::create();
     let module = context.create_module("example");

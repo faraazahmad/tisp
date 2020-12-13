@@ -21,11 +21,20 @@ pub enum LexToken<'a> {
     #[token("/")]
     Divide,
 
+    #[token(">")]
+    Greater,
+
+    #[token("<")]
+    Smaller,
+
     #[token("let")]
     Let,
 
     #[token("print")]
     Print,
+
+    #[token("while")]
+    While,
 
     // Match string literals and then strip the " at start and end
     #[regex("\"([^\"\\\\]|\\\\.)*\"")]
@@ -63,6 +72,10 @@ pub enum TokenKind {
 
     Divide,
 
+    Greater,
+
+    Smaller,
+
     Literal(LiteralKind),
 
     Ident(IdentKind),
@@ -86,7 +99,10 @@ pub enum Value<'a> {
 pub enum IdentKind {
     Variable,
     Let,
+    While,
     Print,
+    Greater,
+    Smaller,
     FuncName,
     Plus,
     Minus,
@@ -98,6 +114,23 @@ pub enum IdentKind {
 pub struct Ident<'a> {
     pub kind: IdentKind,
     pub value: Option<Value<'a>>,
+}
+
+impl<'a> Ident<'a> {
+    pub fn is_builtin(&'a self) -> bool {
+        match self.kind {
+            IdentKind::Let
+            | IdentKind::Div
+            | IdentKind::Plus
+            | IdentKind::FuncName
+            | IdentKind::While
+            | IdentKind::Greater
+            | IdentKind::Smaller
+            | IdentKind::Mult
+            | IdentKind::Minus => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
