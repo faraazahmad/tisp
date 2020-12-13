@@ -30,7 +30,7 @@ fn main() {
                 .help("emits the llvm IR to console"),
         )
         .get_matches();
-
+    // TODO: add debug flag to print token_stream and expression tree
     let filename = matches
         .value_of("input")
         .expect("Please enter the input file to compile");

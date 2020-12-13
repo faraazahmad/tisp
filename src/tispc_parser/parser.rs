@@ -93,15 +93,13 @@ pub fn generate_expression_tree(token_stream: Vec<Token>) -> Vec<Expr> {
 
                 let lead_ident = params.pop().unwrap();
 
-                // reverse params Vec to preserve calling order
-                // params.reverse();
-
                 let parent_expr = match lead_ident {
                     Expr::Builtin(Ident {
                         kind: IdentKind::While,
                         value: _,
                     }) => {
                         let condition = params.pop().unwrap();
+                        // reverse params Vec to preserve expression order
                         params.reverse();
                         Some(Expr::While {
                             condition: Box::new(condition),
@@ -109,6 +107,7 @@ pub fn generate_expression_tree(token_stream: Vec<Token>) -> Vec<Expr> {
                         })
                     }
                     _ => {
+                        // reverse params Vec to preserve expression order
                         params.reverse();
                         Some(Expr::Call(Box::new(lead_ident), params))
                     }
