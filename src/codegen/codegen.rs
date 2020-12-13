@@ -43,19 +43,13 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                         _ => panic!("Invalid condition format"),
                     };
 
-                    /*
-                    // read and build the right condition expression
-                    let cond = self.builder.build_float_compare(
-                        predicate,
-                        params[0].into_float_value(),
-                        params[1].into_float_value(),
-                        "while_cond",
-                    );
-                    */
-
                     // NOTE: assume there is only one function (main)
                     let current_fn = self.module.get_function("main");
 
+                    // Compare Basic Block
+                    // loads the indexing variable
+                    // performs the comparision and jumps to Loop Basic Block
+                    // if true, else goes to After Basic Block
                     let comp_bb = self
                         .context
                         .append_basic_block(current_fn.unwrap(), "while_cmp");
@@ -71,7 +65,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                         "while_cond",
                     );
 
-                    // add basic block for while loop
+                    // Loop Basic Block
+                    // adds statements to execute in the body
+                    // and jumps to Compare basic Block (unconditionally)
                     let loop_bb = self
                         .context
                         .append_basic_block(current_fn.unwrap(), "while");
@@ -82,17 +78,20 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                         self.generate_call(expr);
                     }
 
-                    // add basic block for code after loop
+                    // After Basic Block
+                    // basic block for code to run after loop
                     let after_bb = self
                         .context
                         .append_basic_block(current_fn.unwrap(), "after_while");
 
                     self.builder.build_unconditional_branch(comp_bb);
-                    // self.builder.position_at_end(after_bb);
 
+                    // go to end of Compare Basic Block and add condition
                     self.builder.position_at_end(comp_bb);
                     self.builder
                         .build_conditional_branch(cond, loop_bb, after_bb);
+
+                    // go to end of After Basic Block (end of loop)
                     self.builder.position_at_end(after_bb);
                 }
                 _ => (),
