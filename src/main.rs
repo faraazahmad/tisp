@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 
 use clap::{App, Arg};
 use inkwell::context::Context;
@@ -75,8 +76,12 @@ fn main() {
 
     codegen.module.verify().expect("Errors were encountered");
 
+    // create output file in the same directory as the input file
+    let parent_dir = Path::new(filename).parent().unwrap();
+    let out_file = parent_dir.join("output.ll");
+
     codegen
         .module
-        .print_to_file("/home/faraaz/output.ll")
+        .print_to_file(out_file.to_str().unwrap())
         .expect("Error printing to file");
 }
