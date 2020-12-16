@@ -44,7 +44,7 @@ A program to compute first 5 fibonacci numbers:
 
 This project uses the following requirements:
 * LLVM version 10.0 (https://llvm.org)
-* Latest stable version Rust (https://rust-lang.org)
+* Latest stable version Rust (https://www.rust-lang.org/tools/install)
 
 ## How to build and run Tisp compiler
 
