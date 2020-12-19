@@ -18,89 +18,92 @@ pub struct Codegen<'a, 'ctx> {
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn generate_llvm_ir(&mut self, expression_tree: Vec<Expr<'a>>) {
         for expression in expression_tree {
-            match expression {
-                Expr::Call(_, _) => self.generate_call(expression),
-
-                Expr::While { condition, body } => {
-                    // TODO: convert condition to llvm format
-                    let unboxed_condition = *condition;
-
-                    let (predicate, params) = match unboxed_condition {
-                        Expr::Call(boxed_expr, params) => {
-                            let expr = *boxed_expr;
-                            match expr {
-                                Expr::Builtin(Ident {
-                                    kind: IdentKind::Greater,
-                                    value: _,
-                                }) => (FloatPredicate::OGT, params),
-                                Expr::Builtin(Ident {
-                                    kind: IdentKind::Smaller,
-                                    value: _,
-                                }) => (FloatPredicate::OLT, params),
-                                _ => panic!("Invalid condition expression"),
-                            }
-                        }
-                        _ => panic!("Invalid condition format"),
-                    };
-
-                    // NOTE: assume there is only one function (main)
-                    let current_fn = self.module.get_function("main");
-
-                    // Compare Basic Block
-                    // loads the indexing variable
-                    // performs the comparision and jumps to Loop Basic Block
-                    // if true, else goes to After Basic Block
-                    let comp_bb = self
-                        .context
-                        .append_basic_block(current_fn.unwrap(), "while_cmp");
-                    self.builder.build_unconditional_branch(comp_bb);
-                    self.builder.position_at_end(comp_bb);
-
-                    let compiled_cond_params = self.generate_args("while", params);
-
-                    let cond = self.builder.build_float_compare(
-                        predicate,
-                        compiled_cond_params[0].into_float_value(),
-                        compiled_cond_params[1].into_float_value(),
-                        "while_cond",
-                    );
-
-                    // Loop Basic Block
-                    // adds statements to execute in the body
-                    // and jumps to Compare basic Block (unconditionally)
-                    let loop_bb = self
-                        .context
-                        .append_basic_block(current_fn.unwrap(), "while");
-                    self.builder.position_at_end(loop_bb);
-
-                    // add body statements
-                    for expr in body {
-                        self.generate_call(expr);
-                    }
-
-                    // After Basic Block
-                    // basic block for code to run after loop
-                    let after_bb = self
-                        .context
-                        .append_basic_block(current_fn.unwrap(), "after_while");
-
-                    self.builder.build_unconditional_branch(comp_bb);
-
-                    // go to end of Compare Basic Block and add condition
-                    self.builder.position_at_end(comp_bb);
-                    self.builder
-                        .build_conditional_branch(cond, loop_bb, after_bb);
-
-                    // go to end of After Basic Block (end of loop)
-                    self.builder.position_at_end(after_bb);
-                }
-                _ => (),
-            }
+            self.compile_expr(expression);
         }
 
         // add return 0 at the end
         self.builder
             .build_return(Some(&self.context.i32_type().const_int(0, false)));
+    }
+    fn compile_expr(&mut self, expression: Expr<'a>) {
+        match expression {
+            Expr::Call(_, _) => self.generate_call(expression),
+
+            Expr::While { condition, body } => {
+                // TODO: convert condition to llvm format
+                let unboxed_condition = *condition;
+
+                let (predicate, params) = match unboxed_condition {
+                    Expr::Call(boxed_expr, params) => {
+                        let expr = *boxed_expr;
+                        match expr {
+                            Expr::Builtin(Ident {
+                                kind: IdentKind::Greater,
+                                value: _,
+                            }) => (FloatPredicate::OGT, params),
+                            Expr::Builtin(Ident {
+                                kind: IdentKind::Smaller,
+                                value: _,
+                            }) => (FloatPredicate::OLT, params),
+                            _ => panic!("Invalid condition expression"),
+                        }
+                    }
+                    _ => panic!("Invalid condition format"),
+                };
+
+                // NOTE: assume there is only one function (main)
+                let current_fn = self.module.get_function("main");
+
+                // Compare Basic Block
+                // loads the indexing variable
+                // performs the comparision and jumps to Loop Basic Block
+                // if true, else goes to After Basic Block
+                let comp_bb = self
+                    .context
+                    .append_basic_block(current_fn.unwrap(), "while_cmp");
+                self.builder.build_unconditional_branch(comp_bb);
+                self.builder.position_at_end(comp_bb);
+
+                let compiled_cond_params = self.generate_args("while", params);
+
+                let cond = self.builder.build_float_compare(
+                    predicate,
+                    compiled_cond_params[0].into_float_value(),
+                    compiled_cond_params[1].into_float_value(),
+                    "while_cond",
+                );
+
+                // Loop Basic Block
+                // adds statements to execute in the body
+                // and jumps to Compare basic Block (unconditionally)
+                let loop_bb = self
+                    .context
+                    .append_basic_block(current_fn.unwrap(), "while");
+                self.builder.position_at_end(loop_bb);
+
+                // add body statements
+                for expr in body {
+                    self.generate_call(expr);
+                }
+
+                // After Basic Block
+                // basic block for code to run after loop
+                let after_bb = self
+                    .context
+                    .append_basic_block(current_fn.unwrap(), "after_while");
+
+                self.builder.build_unconditional_branch(comp_bb);
+
+                // go to end of Compare Basic Block and add condition
+                self.builder.position_at_end(comp_bb);
+                self.builder
+                    .build_conditional_branch(cond, loop_bb, after_bb);
+
+                // go to end of After Basic Block (end of loop)
+                self.builder.position_at_end(after_bb);
+            }
+            _ => (),
+        }
     }
 
     fn generate_args(&mut self, func_name: &str, args: Vec<Expr>) -> Vec<BasicValueEnum<'ctx>> {
