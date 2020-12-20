@@ -15,13 +15,15 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
     // define and add the printf function to the module
     pub fn add_printf(&mut self) {
-        let void_type = self.context.void_type(); // return type
+        let f64_type = self.context.f64_type();
         let str_type = self
             .context
             .i8_type()
             .ptr_type(inkwell::AddressSpace::Generic);
         let printf_args_type = vec![BasicTypeEnum::PointerType(str_type)];
-        let printf_type = void_type.fn_type(printf_args_type.as_slice(), true);
+
+        // printf needs to return a double to be used in compile_call
+        let printf_type = f64_type.fn_type(printf_args_type.as_slice(), true);
 
         let printf_fn = self
             .module

@@ -39,12 +39,12 @@ pub fn generate_expression_tree(token_stream: Vec<Token>) -> Vec<Expr> {
             })),
             TokenKind::Ident(ident_kind) => match ident_kind {
                 IdentKind::Let => Some(Expr::Builtin(Ident {
-                    kind: IdentKind::FuncName,
-                    value: Some(Value::String("let")),
+                    kind: IdentKind::Let,
+                    value: None,
                 })),
                 IdentKind::Print => Some(Expr::Builtin(Ident {
-                    kind: IdentKind::FuncName,
-                    value: Some(Value::String("print")),
+                    kind: IdentKind::Print,
+                    value: None,
                 })),
                 IdentKind::Variable => Some(Expr::Builtin(Ident {
                     kind: IdentKind::Variable,

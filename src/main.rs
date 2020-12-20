@@ -51,6 +51,10 @@ fn main() {
 
     let expression_tree = generate_expression_tree(token_stream.clone());
 
+    if debug_flag {
+        println!("\nExpression tree: \n{:?}\n", expression_tree);
+    }
+
     let context = Context::create();
     let module = context.create_module("example");
     let builder = context.create_builder();
@@ -64,11 +68,6 @@ fn main() {
 
     codegen.init(filename);
     codegen.generate_llvm_ir(expression_tree.clone());
-
-    if debug_flag {
-        println!("Token stream: \n{:?}", token_stream);
-        println!("\n\n Expression tree: \n{:?}", expression_tree);
-    }
 
     if emit_llvm {
         println!("{}", codegen.module.print_to_string().to_str().unwrap());

@@ -3,9 +3,10 @@ use std::collections::HashMap;
 use crate::tispc_lexer::{Ident, IdentKind, Value};
 use crate::tispc_parser::Expr;
 use inkwell::context::Context;
+use inkwell::values::{FloatValue, FunctionValue};
 use inkwell::FloatPredicate;
 use inkwell::{builder::Builder, values::BasicValueEnum};
-use inkwell::{module::Module, values::FunctionValue, values::PointerValue};
+use inkwell::{module::Module, values::PointerValue};
 
 pub struct Codegen<'a, 'ctx> {
     pub context: &'ctx Context,
@@ -18,16 +19,30 @@ pub struct Codegen<'a, 'ctx> {
 impl<'a, 'ctx> Codegen<'a, 'ctx> {
     pub fn generate_llvm_ir(&mut self, expression_tree: Vec<Expr<'a>>) {
         for expression in expression_tree {
-            self.compile_expr(expression);
+            match self.compile_expr(expression) {
+                Err(x) => panic!("{}", x),
+                _ => (),
+            }
         }
 
         // add return 0 at the end
         self.builder
             .build_return(Some(&self.context.i32_type().const_int(0, false)));
     }
-    fn compile_expr(&mut self, expression: Expr<'a>) {
+
+    fn compile_expr(&mut self, expression: Expr<'a>) -> Result<FloatValue<'ctx>, &'a str> {
         match expression {
-            Expr::Call(_, _) => self.generate_call(expression),
+            Expr::Call(_, _) => self.compile_call(expression),
+
+            Expr::Constant(Value::Number(val)) => Ok(self.context.f64_type().const_float(val)),
+
+            Expr::Builtin(Ident {
+                kind: IdentKind::Variable,
+                value: Some(Value::String(val)),
+            }) => match self.variables.get(val) {
+                Some(var) => Ok(self.builder.build_load(*var, val).into_float_value()),
+                None => Err("Could not find variable"),
+            },
 
             Expr::While { condition, body } => {
                 // TODO: convert condition to llvm format
@@ -64,14 +79,13 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 self.builder.build_unconditional_branch(comp_bb);
                 self.builder.position_at_end(comp_bb);
 
-                let compiled_cond_params = self.generate_args("while", params);
+                // let compiled_cond_params = self.generate_args("while", params);
+                let lhs = self.compile_expr(params[0].clone())?;
+                let rhs = self.compile_expr(params[1].clone())?;
 
-                let cond = self.builder.build_float_compare(
-                    predicate,
-                    compiled_cond_params[0].into_float_value(),
-                    compiled_cond_params[1].into_float_value(),
-                    "while_cond",
-                );
+                let cond = self
+                    .builder
+                    .build_float_compare(predicate, lhs, rhs, "while_cond");
 
                 // Loop Basic Block
                 // adds statements to execute in the body
@@ -83,7 +97,10 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
                 // add body statements
                 for expr in body {
-                    self.generate_call(expr);
+                    match self.compile_expr(expr) {
+                        Err(x) => eprintln!("{}", x),
+                        _ => (),
+                    }
                 }
 
                 // After Basic Block
@@ -101,126 +118,76 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
 
                 // go to end of After Basic Block (end of loop)
                 self.builder.position_at_end(after_bb);
+
+                Ok(self.context.f64_type().const_float(0.0))
             }
-            _ => (),
+            _ => Err("Invalid expression. can\'t compile"),
         }
     }
 
-    fn generate_args(&mut self, func_name: &str, args: Vec<Expr>) -> Vec<BasicValueEnum<'ctx>> {
-        let mut compiled_args: Vec<BasicValueEnum> = Vec::new();
+    fn compile_call(&mut self, expr: Expr<'a>) -> Result<FloatValue<'ctx>, &'a str> {
+        let expression = expr.clone();
 
-        for arg in args {
-            let compiled_arg = match arg {
-                Expr::Constant(Value::Number(val)) => {
-                    BasicValueEnum::FloatValue(self.context.f64_type().const_float(val))
-                }
-                Expr::Constant(Value::String(val)) => {
-                    let str_name = format!("{}_string_arg", func_name);
-                    BasicValueEnum::PointerValue(
-                        self.builder
-                            .build_global_string_ptr(val, str_name.as_str())
-                            .as_pointer_value(),
-                    )
-                }
-                Expr::Builtin(Ident {
-                    kind: IdentKind::Variable,
-                    value: Some(Value::String(var_name)),
-                }) => {
-                    let var_ptr_result = self.variables.get(var_name);
-
-                    match var_ptr_result {
-                        None => panic!("variable {} not defined", var_name),
-                        _ => (),
-                    };
-
-                    let var_ptr = var_ptr_result.unwrap();
-
-                    self.builder.build_load(*var_ptr, var_name)
-                }
-                Expr::Call(func_name_box, params) => {
-                    let op_kind = match *func_name_box {
-                        Expr::Builtin(Ident {
-                            kind: IdentKind::Plus,
-                            value: _,
-                        }) => IdentKind::Plus,
-                        Expr::Builtin(Ident {
-                            kind: IdentKind::Minus,
-                            value: _,
-                        }) => IdentKind::Minus,
-                        Expr::Builtin(Ident {
-                            kind: IdentKind::Mult,
-                            value: _,
-                        }) => IdentKind::Mult,
-                        Expr::Builtin(Ident {
-                            kind: IdentKind::Div,
-                            value: _,
-                        }) => IdentKind::Div,
-                        _ => panic!("Invalid operator type"),
-                    };
-
-                    let child_compiled_args = self.generate_args(func_name, params);
-                    let (lhs, rhs) = (child_compiled_args[0], child_compiled_args[1]);
-
-                    let result = match op_kind {
-                        IdentKind::Plus => self.builder.build_float_add(
-                            lhs.into_float_value(),
-                            rhs.into_float_value(),
-                            "add",
-                        ),
-                        IdentKind::Minus => self.builder.build_float_sub(
-                            lhs.into_float_value(),
-                            rhs.into_float_value(),
-                            "sub",
-                        ),
-                        IdentKind::Mult => self.builder.build_float_mul(
-                            lhs.into_float_value(),
-                            rhs.into_float_value(),
-                            "mul",
-                        ),
-                        IdentKind::Div => self.builder.build_float_div(
-                            lhs.into_float_value(),
-                            rhs.into_float_value(),
-                            "div",
-                        ),
-                        _ => panic!("Invalid operator type"),
-                    };
-
-                    BasicValueEnum::FloatValue(result)
-                }
-                _ => panic!("Invalid arg type for function {:?}", arg),
-            };
-
-            compiled_args.push(compiled_arg);
-        }
-
-        compiled_args
-    }
-
-    pub fn generate_call(&mut self, expr: Expr<'a>) {
-        let (func_name, args) = match expr {
-            Expr::Call(func_name_box, params) => match *func_name_box {
-                Expr::Builtin(Ident {
-                    kind: IdentKind::FuncName,
-                    value: Some(Value::String(func_name)),
-                }) => (func_name, params),
-                _ => panic!("Invalid function call"),
+        match expression {
+            Expr::Call(boxed_func_name, _params) => match *boxed_func_name {
+                Expr::Builtin(_) => self.compile_builtin(expr.clone()),
+                _ => Err("Invalid call expression"),
             },
-            _ => panic!("Invalid function call"),
+            _ => Err("Internal error: Invalid use of compile_call function"),
+        }
+    }
+
+    fn compile_builtin(&mut self, expr: Expr<'a>) -> Result<FloatValue<'ctx>, &'a str> {
+        let (func_name_ident, args) = match expr {
+            Expr::Call(func_name_box, params) => match *func_name_box {
+                Expr::Builtin(func_name_ident) => (func_name_ident, params),
+                _ => panic!("Invalid builtin function {:?}", *func_name_box),
+            },
+            _ => panic!("Invalid function call {:?}", expr),
         };
 
-        match func_name {
-            "print" => {
+        match func_name_ident {
+            Ident {
+                kind: IdentKind::Print,
+                value: _,
+            } => {
                 let printf = self.builtins.get("printf").unwrap().clone();
-                let mut compiled_args = self.generate_args(func_name, args.clone());
-                let format_string = self.generate_printf_format_string(compiled_args.clone());
-                compiled_args.insert(0, format_string);
-                self.builder
-                    .build_call(printf, compiled_args.as_slice(), "printf");
+
+                // let mut compiled_args = self.generate_args("print", args.clone());
+                // let format_string = self.generate_printf_format_string(compiled_args.clone());
+                // compiled_args.insert(0, format_string);
+
+                let mut compiled_args: Vec<FloatValue<'ctx>> = Vec::new();
+                for arg in args {
+                    compiled_args.push(self.compile_expr(arg)?);
+                }
+
+                let mut argsv: Vec<BasicValueEnum<'ctx>> = compiled_args
+                    .iter()
+                    .by_ref()
+                    .map(|&val| val.into())
+                    .collect();
+
+                let format_string = self.generate_printf_format_string(argsv.clone());
+                argsv.insert(0, format_string);
+
+                match self
+                    .builder
+                    .build_call(printf, argsv.as_slice(), "printf")
+                    .try_as_basic_value()
+                    .left()
+                {
+                    Some(value) => Ok(value.into_float_value()),
+                    None => Err("Invalid call to print"),
+                }
             }
-            "let" => {
+            Ident {
+                kind: IdentKind::Let,
+                value: _,
+            } => {
                 // panic if let doesn't have exactly 2 params (name and value)
                 if args.len() != 2 {
-                    panic!("Invalid syntax for let")
+                    return Err("Invalid syntax for let");
                 }
 
                 // get name and value of variable
@@ -232,8 +199,9 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     _ => panic!("Invalid variable name"),
                 };
 
-                let value_vec = vec![args[1].clone()];
-                let value = self.generate_args("let", value_vec)[0].into_float_value();
+                // let value_vec = vec![args[1].clone()];
+                // let value = self.generate_args("let", value_vec)[0].into_float_value();
+                let value = self.compile_expr(args[1].clone());
 
                 let val_ptr_result = self.variables.get(name);
                 let val_ptr = match val_ptr_result {
@@ -241,9 +209,85 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                     _ => *val_ptr_result.unwrap(),
                 };
                 self.variables.insert(name, val_ptr);
-                self.builder.build_store(val_ptr, value);
+                self.builder.build_store(val_ptr, value.unwrap());
+
+                value
             }
-            _ => panic!("Invalid function: {}", func_name),
+            Ident {
+                kind: IdentKind::Plus,
+                value: None,
+            }
+            | Ident {
+                kind: IdentKind::Minus,
+                value: None,
+            }
+            | Ident {
+                kind: IdentKind::Mult,
+                value: None,
+            }
+            | Ident {
+                kind: IdentKind::Div,
+                value: None,
+            } => {
+                let mut argsv = args.clone();
+
+                let mut result = self.compile_expr(argsv.pop().unwrap())?;
+
+                match func_name_ident {
+                    Ident {
+                        kind: IdentKind::Plus,
+                        value: None,
+                    } => {
+                        for arg in argsv {
+                            result = self.builder.build_float_add(
+                                result,
+                                self.compile_expr(arg)?,
+                                "add",
+                            );
+                        }
+                    }
+                    Ident {
+                        kind: IdentKind::Minus,
+                        value: None,
+                    } => {
+                        for arg in argsv {
+                            result = self.builder.build_float_add(
+                                result,
+                                self.compile_expr(arg)?,
+                                "add",
+                            );
+                        }
+                    }
+                    Ident {
+                        kind: IdentKind::Mult,
+                        value: None,
+                    } => {
+                        for arg in argsv {
+                            result = self.builder.build_float_add(
+                                result,
+                                self.compile_expr(arg)?,
+                                "add",
+                            );
+                        }
+                    }
+                    Ident {
+                        kind: IdentKind::Div,
+                        value: None,
+                    } => {
+                        for arg in argsv {
+                            result = self.builder.build_float_add(
+                                result,
+                                self.compile_expr(arg)?,
+                                "add",
+                            );
+                        }
+                    }
+                    _ => return Err("Invalid operation"),
+                }
+
+                Ok(result)
+            }
+            _ => Err("function not defined."),
         }
     }
 

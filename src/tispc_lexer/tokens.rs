@@ -120,6 +120,7 @@ impl<'a> Ident<'a> {
     pub fn is_builtin(&'a self) -> bool {
         match self.kind {
             IdentKind::Let
+            | IdentKind::Print
             | IdentKind::Div
             | IdentKind::Plus
             | IdentKind::FuncName
