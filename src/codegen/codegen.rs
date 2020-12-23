@@ -79,7 +79,6 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 self.builder.build_unconditional_branch(comp_bb);
                 self.builder.position_at_end(comp_bb);
 
-                // let compiled_cond_params = self.generate_args("while", params);
                 let lhs = self.compile_expr(params[0].clone())?;
                 let rhs = self.compile_expr(params[1].clone())?;
 
@@ -98,7 +97,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                 // add body statements
                 for expr in body {
                     match self.compile_expr(expr) {
-                        Err(x) => eprintln!("{}", x),
+                        Err(x) => return Err(x),
                         _ => (),
                     }
                 }
@@ -251,7 +250,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                         value: None,
                     } => {
                         for arg in argsv {
-                            result = self.builder.build_float_add(
+                            result = self.builder.build_float_sub(
                                 result,
                                 self.compile_expr(arg)?,
                                 "add",
@@ -263,7 +262,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                         value: None,
                     } => {
                         for arg in argsv {
-                            result = self.builder.build_float_add(
+                            result = self.builder.build_float_mul(
                                 result,
                                 self.compile_expr(arg)?,
                                 "add",
@@ -275,7 +274,7 @@ impl<'a, 'ctx> Codegen<'a, 'ctx> {
                         value: None,
                     } => {
                         for arg in argsv {
-                            result = self.builder.build_float_add(
+                            result = self.builder.build_float_div(
                                 result,
                                 self.compile_expr(arg)?,
                                 "add",
