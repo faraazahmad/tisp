@@ -77,5 +77,5 @@ lli ~/output.ll
 ```
 
 **NOTE**: Tisp doesn't generate executable binaries yet, it generates LLVM IR
-in a file called `output.ll` that you can run with the `lli` command that comes
-with your LLVM installation.
+in a file called `output.ll` in the same folder as the source file that you 
+can run with the `lli` command that comes with your LLVM installation.
