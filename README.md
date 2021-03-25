@@ -1,4 +1,4 @@
-# Tisp (**T**yped L**isp**)
+# Tisp (**T**oy L**isp**)
 
 A Lisp-like programming language that is typed and compiled. It aims to 
 support multiple processor architectures by being built upon LLVM. It takes
